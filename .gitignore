@@ -1,3 +1,5 @@
 PlushSim/
 *.ply
 .DS_Store
+cloth/
+*.json
