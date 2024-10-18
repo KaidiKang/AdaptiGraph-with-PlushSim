@@ -30,7 +30,7 @@ with h5py.File('cloth/000000/00.h5', 'r') as file:
     # Convert the entire HDF5 structure into a dictionary
     hdf5_dict = h5_to_dict(file)
 
-with open('h5_file.json', 'w') as json_file:
+with open('example/h5_file.json', 'w') as json_file:
     json.dump(hdf5_dict, json_file, indent=4)
 
 
@@ -38,5 +38,5 @@ with open('h5_file.json', 'w') as json_file:
 with open('cloth/000000/property_params.pkl', 'rb') as pkl_file:
     property_params = pickle.load(pkl_file)
 
-with open('property_params.json', 'w') as json_file:
+with open('example/property_params.json', 'w') as json_file:
     json.dump(property_params, json_file, indent=4)
