@@ -95,7 +95,7 @@ if __name__ == "__main__":
     downpcd = pcd.voxel_down_sample(voxel_size=voxel_size)
 
     # Downsample the point cloud to target number of points
-    target_points = 10000
+    target_points = 2000
     target_downpcd = pcd.farthest_point_down_sample(target_points)
 
     if view:
