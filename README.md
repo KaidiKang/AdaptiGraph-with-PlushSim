@@ -1,4 +1,7 @@
 # Learning Latent Graph Dynamics for Volumetric Deformable Objects
 
 ## Requirements
-Python = 3.9
+Use the following command to create the environment:
+```bash
+conda env create -f environment.yml
+```
