@@ -1,7 +1,13 @@
-PlushSim/
+__pycache__
+PlushSim
 *.ply
 .DS_Store
-cloth/
+cloth
 *.json
-demo/
-example/
+demo
+example
+src
+rope
+preprocess
+initialized
+test.py

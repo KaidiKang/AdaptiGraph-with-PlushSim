@@ -76,6 +76,12 @@ def load_camera_intrinsics(camera_info):
     
     return intrinsic
 
+def show_pcd(file_path):
+    # Read the PLY file
+    pcd = o3d.io.read_point_cloud(file_path)
+    # Visualize the point cloud
+    o3d.visualization.draw_geometries([pcd])
+    return
 
 if __name__ == "__main__":
     # paths
