@@ -53,25 +53,52 @@ def check_h5_compression(h5_path):
                 print(f"Group: {key}")
 
 
-# Save a nested dictionary containing numpy arrays to a single h5 file
+# Save a nested dictionary to a single h5 file
 def save_dic_to_h5(dictionary, filename):
     with h5py.File(filename, 'w') as f:
         for key, value in dictionary.items():
             if isinstance(value, dict):
-                # Create a group and recursively save sub-dictionary
+                # Create a group for nested dictionary
                 group = f.create_group(key)
                 for subkey, subvalue in value.items():
-                    if isinstance(subvalue, np.ndarray):
-                        group.create_dataset(subkey, data=subvalue)
+                    if isinstance(subvalue, dict):
+                        # Handle nested dictionary
+                        subgroup = group.create_group(subkey)
+                        for k, v in subvalue.items():
+                            if isinstance(v, list):
+                                # Convert empty or numeric lists to numpy arrays
+                                if len(v) == 0:
+                                    subgroup.create_dataset(k, data=np.array(v, dtype=np.float32))
+                                else:
+                                    subgroup.create_dataset(k, data=np.array(v))
+                            else:
+                                subgroup.create_dataset(k, data=v)
+                    elif isinstance(subvalue, list):
+                        # Convert empty or numeric lists to numpy arrays
+                        if len(subvalue) == 0:
+                            group.create_dataset(subkey, data=np.array(subvalue, dtype=np.float32))
+                        else:
+                            group.create_dataset(subkey, data=np.array(subvalue))
                     else:
-                        # For other types like int, float, string
-                        group.create_dataset(subkey, data=subvalue)
-            else:
-                if isinstance(value, np.ndarray):
-                    f.create_dataset(key, data=value)
+                        # Handle numeric or string values
+                        if isinstance(subvalue, (int, float)):
+                            group.create_dataset(subkey, data=subvalue)
+                        elif isinstance(subvalue, str):
+                            group.create_dataset(subkey, data=np.string_(subvalue))
+            elif isinstance(value, list):
+                # Convert empty or numeric lists to numpy arrays
+                if len(value) == 0:
+                    f.create_dataset(key, data=np.array(value, dtype=np.float32))
                 else:
-                    # For other types like int, float, string
+                    f.create_dataset(key, data=np.array(value))
+            elif isinstance(value, np.ndarray):
+                f.create_dataset(key, data=value)
+            else:
+                # Handle numeric or string values
+                if isinstance(value, (int, float)):
                     f.create_dataset(key, data=value)
+                elif isinstance(value, str):
+                    f.create_dataset(key, data=np.string_(value))
 
 
 def h5_to_json(h5_path, json_path):
