@@ -92,7 +92,7 @@ def preprocess (config):
     info_path = config.get("info_path", "PlushSim/interaction_sequence/info")
     geom_path = config.get("geom_path", "PlushSim/interaction_sequence/geom")
     cam_path = config.get("cam_path", "PlushSim/interaction_sequence/info/scene_meta.json")
-    max_points = config.get("max_points", 5)
+    max_points = config.get("max_points", 2000)
 
     if not os.path.exists(image_path) or not os.path.exists(info_path):
         raise FileNotFoundError("Image or info directory does not exist")
