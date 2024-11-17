@@ -174,15 +174,12 @@ def preprocess (config):
 
         # Save the property parameters
         property_params = {
-            # CHANGE THIS 
-            "particle_radius": 0.03,
-            "num_particles": 2160,
-            "length": 2.7744067519636624,
-            "thickness": 3.0,
-            "dynamic_friction": 0.3,
-            "cluster_spacing": 6.860757465489678,
-            "global_stiffness": 0.00018607574654896778,
-            "stiffness": 0.7151893663724195
+            "density": 0.009999999776482582, 
+            "elasticity_damping": 0.10000000149011612, 
+            "dynamic_friction": 0.25, 
+            "youngs_modulus": 10000000.0, 
+            "poissons_ratio": 0.30000001192092896, 
+            "damping_scale": 1.0
         }
         save_dic_to_pkl(property_params, f"initialized/{int(sequence):06d}/property_params.pkl")
         
