@@ -57,7 +57,7 @@ def load_camera_intrinsics(camera_info):
         data = json.load(f)
         cam_info = data['cam_info']['Camera']
 
-        # # Parse extrinsic matrix
+        # Parse extrinsic matrix
         # extrinsic = np.array(cam_info[0])
         
         # Parse intrinsic matrix
@@ -94,7 +94,8 @@ if __name__ == "__main__":
     save = False
 
     # Create point cloud from masked images
-    pcd = create_masked_point_cloud(image, depth, mask, load_camera_intrinsics(camera_info))
+    intrinsic = load_camera_intrinsics(camera_info)
+    pcd = create_masked_point_cloud(image, depth, mask, intrinsic)
 
     # Downsample the point cloud
     voxel_size = 0.05
