@@ -43,6 +43,9 @@ def load_eef(geom_path):
     eef_pos = data["eef_pos"]
     
     assert len(eef_pos) == 7, "eef_pos must have length 7"
+
+    if np.array_equal(eef_pos, [-1, -1, -1, -1, -1, -1, -1]):
+        return None
     
     pos = eef_pos[:3]
     orient = eef_pos[3:]
@@ -116,61 +119,63 @@ def preprocess (config):
                 break
 
             if int(frame) in range(info["start_frames"][interaction_index], info["release_frames"][interaction_index]+1):
-                # Get the point cloud
-                pcd = get_pointcloud(sequence, frame, image_path, cam_path)
-                pcd = pcd.farthest_point_down_sample(max_points)
-                lift_pc.append(np.asarray(pcd.points))
-
                 # Get eef_positions
                 eef_pos = load_eef(os.path.join(geom_path, f"{sequence}_{frame}.npz"))
-                lift_eef.append(eef_pos)
+                if eef_pos is not None:
+                    lift_eef.append(eef_pos)
+                    
+                    # Get the point cloud
+                    pcd = get_pointcloud(sequence, frame, image_path, cam_path)
+                    pcd = pcd.farthest_point_down_sample(max_points)
+                    lift_pc.append(np.asarray(pcd.points))
 
                 assert len(lift_pc) == len(lift_eef), "Length of point cloud and eef positions do not match"
 
             elif int(frame) in range(info["release_frames"][interaction_index], info["static_frames"][interaction_index]+1):
-                # Get the point cloud
-                pcd = get_pointcloud(sequence, frame, image_path, cam_path)
-                pcd = pcd.farthest_point_down_sample(max_points)
-                release_pc.append(np.asarray(pcd.points))
-
                 # Get eef_positions
                 eef_pos = load_eef(os.path.join(geom_path, f"{sequence}_{frame}.npz"))
-                release_eef.append(eef_pos)
+                if eef_pos is not None:
+                    release_eef.append(eef_pos)
+                    
+                    # Get the point cloud
+                    pcd = get_pointcloud(sequence, frame, image_path, cam_path)
+                    pcd = pcd.farthest_point_down_sample(max_points)
+                    release_pc.append(np.asarray(pcd.points))
 
                 assert len(release_pc) == len(release_eef), "Length of point cloud and eef positions do not match"
 
-                if int(frame) == info["static_frames"][interaction_index]:
-                    output = {
-                        "action": [],
-                        "eef_states": lift_eef, # Lift phase only
-                        "info": {
-                            "n_cams": 1,
-                            "n_particles": max_points,
-                            "timestamp": len(lift_pc),
+            if int(frame) == info["static_frames"][interaction_index]:
+                output = {
+                    "action": [],
+                    "eef_states": lift_eef, # Lift phase only
+                    "info": {
+                        "n_cams": 1,
+                        "n_particles": max_points,
+                        "timestamp": len(lift_pc),
+                    },
+                    "observations": {
+                        "color": {
+                            "cam_0": [
+                                0.0
+                            ]
                         },
-                        "observations": {
-                            "color": {
-                                "cam_0": [
-                                    0.0
-                                ]
-                            },
-                            "depth": {
-                                "cam_0": [
-                                    0.0
-                                ]
-                            }
-                        },
-                        "positions": convert_ndarray(lift_pc), # Lift phase only
-                        # Additional information
-                        # "release": convert_ndarray(release_pc),
-                        # "grasp_point": info["grasp_points"][interaction_index],
-                        # "release_point": info["target_points"][interaction_index],
-                        # "grasp_pixel": info["grasp_pixels"][interaction_index]
-                    }
+                        "depth": {
+                            "cam_0": [
+                                0.0
+                            ]
+                        }
+                    },
+                    "positions": convert_ndarray(lift_pc), # Lift phase only
+                    # Additional information
+                    # "release": convert_ndarray(release_pc),
+                    # "grasp_point": info["grasp_points"][interaction_index],
+                    # "release_point": info["target_points"][interaction_index],
+                    # "grasp_pixel": info["grasp_pixels"][interaction_index]
+                }
 
-                    save_dic_to_h5(output, f"initialized/{int(sequence):06d}/{interaction_index:02d}.h5")
-                    interaction_index += 1
-                    lift_pc, release_pc, lift_eef, release_eef = [], [], [], []
+                save_dic_to_h5(output, f"initialized/{int(sequence):06d}/{interaction_index:02d}.h5")
+                interaction_index += 1
+                lift_pc, release_pc, lift_eef, release_eef = [], [], [], []
 
         # Save the property parameters
         property_params = {
