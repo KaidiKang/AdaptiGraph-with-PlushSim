@@ -6,3 +6,4 @@ dependencies:
   - python=3.9
   - open3d
   - h5py
+  - opencv=4.10.0.84
