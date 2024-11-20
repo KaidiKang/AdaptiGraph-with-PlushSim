@@ -117,15 +117,15 @@ def preprocess (config, phase = "val"):
 
         info = sequence_groups[sequence]["interaction"]
 
-        lift_pc, release_pc, lift_eef, release_eef, lift_rgb, release_rgb = [], [], [], [], [], []
+        lift_pc, lift_eef, lift_rgb = [], [], []
         interaction_index = 0
 
         # Iterate through each frame
         for frame in sequence_groups[sequence]["frames"]:
             if interaction_index >= len(info["start_frames"]):
                 break
-
-            if int(frame) in range(info["start_frames"][interaction_index], info["release_frames"][interaction_index]+1):
+            
+            if int(frame) in range (info["start_frames"][interaction_index], info["static_frames"][interaction_index]+1):
                 # Get eef_positions
                 eef_pos = load_eef(os.path.join(geom_path, f"{sequence}_{frame}.npz"))
                 if eef_pos is not None:
@@ -144,26 +144,7 @@ def preprocess (config, phase = "val"):
 
                 assert len(lift_pc) == len(lift_eef), "Length of point cloud and eef positions do not match"
 
-            # elif int(frame) in range(info["release_frames"][interaction_index], info["static_frames"][interaction_index]+1):
-            #     # Get eef_positions
-            #     eef_pos = load_eef(os.path.join(geom_path, f"{sequence}_{frame}.npz"))
-            #     if eef_pos is not None:
-            #         release_eef.append(eef_pos)
-                    
-            #         # Get the point cloud
-            #         pcd = get_pointcloud(sequence, frame, image_path, cam_path)
-            #         pcd = pcd.farthest_point_down_sample(max_points)
-            #         release_pc.append(np.asarray(pcd.points))
-
-            #         if phase == "val":
-            #             # Get the rgb values
-            #             img = get_rgb_values(image_path, sequence, frame)
-            #             release_rgb.append(img)
-            #             assert len(release_pc) == len(release_rgb), "Length of point cloud and rgb values do not match"
-
-            #     assert len(release_pc) == len(release_eef), "Length of point cloud and eef positions do not match"
-
-            if int(frame) == info["static_frames"][interaction_index]:
+            else:
                 output = {
                     "action": [],
                     "eef_states": lift_eef, # Lift phase only
@@ -184,7 +165,6 @@ def preprocess (config, phase = "val"):
                     },
                     "positions": convert_ndarray(lift_pc), # Lift phase only
                     # Additional information
-                    # "release": convert_ndarray(release_pc),
                     # "grasp_point": info["grasp_points"][interaction_index],
                     # "release_point": info["target_points"][interaction_index],
                     # "grasp_pixel": info["grasp_pixels"][interaction_index]
@@ -192,7 +172,55 @@ def preprocess (config, phase = "val"):
 
                 save_dic_to_h5(output, f"initialized/{int(sequence):06d}/{interaction_index:02d}.h5")
                 interaction_index += 1
-                lift_pc, release_pc, lift_eef, release_eef, lift_rgb, release_rgb= [], [], [], [], [], []
+                lift_pc, lift_eef, lift_rgb= [], [], []
+
+                if int(frame) in range (info["start_frames"][interaction_index], info["static_frames"][interaction_index]+1):
+                    # Get eef_positions
+                    eef_pos = load_eef(os.path.join(geom_path, f"{sequence}_{frame}.npz"))
+                    if eef_pos is not None:
+                        lift_eef.append(eef_pos)
+                        
+                        # Get the point cloud
+                        pcd = get_pointcloud(sequence, frame, image_path, cam_path)
+                        pcd = pcd.farthest_point_down_sample(max_points)
+                        lift_pc.append(np.asarray(pcd.points))
+
+                        if phase == "val":
+                            # Get the rgb values
+                            img = get_rgb_values(image_path, sequence, frame)
+                            lift_rgb.append(img)
+                            assert len(lift_pc) == len(lift_rgb), "Length of point cloud and rgb values do not match"
+
+                    assert len(lift_pc) == len(lift_eef), "Length of point cloud and eef positions do not match"
+
+        # Save the last interaction
+        output = {
+                "action": [],
+                "eef_states": lift_eef, # Lift phase only
+                "info": {
+                    "n_cams": 1,
+                    "n_particles": max_points,
+                    "timestamp": len(lift_pc),
+                },
+                "observations": {
+                    "color": {
+                        "cam_0": lift_rgb
+                    },
+                    "depth": {
+                        "cam_0": [
+                            0.0
+                        ]
+                    }
+                },
+                "positions": convert_ndarray(lift_pc), # Lift phase only
+                # Additional information
+                # "grasp_point": info["grasp_points"][interaction_index],
+                # "release_point": info["target_points"][interaction_index],
+                # "grasp_pixel": info["grasp_pixels"][interaction_index]
+            }
+
+        save_dic_to_h5(output, f"initialized/{int(sequence):06d}/{interaction_index:02d}.h5")
+
 
         # Save the property parameters
         property_params = {
@@ -226,7 +254,6 @@ def preprocess (config, phase = "val"):
     time_end = time.time()
     print (f"Preprocessing completed in {time_end - time_start} seconds")
         
-
 
 if __name__ == "__main__":
     # If phase is train, rgb info is omitted
