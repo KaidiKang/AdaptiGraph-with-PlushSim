@@ -2,7 +2,7 @@ import open3d as o3d
 import numpy as np
 import json
 
-def create_masked_point_cloud(color_raw, depth_raw, mask_raw, intrinsic):
+def create_masked_point_cloud(color_raw, depth_raw, mask_raw, intrinsic, extrinsic):
     # Load color image
     color_image = o3d.io.read_image(color_raw)
     # Load depth image
@@ -47,7 +47,7 @@ def create_masked_point_cloud(color_raw, depth_raw, mask_raw, intrinsic):
 
     # The point cloud is by default in the camera coordinate system
     # Flip it, so it's in the world coordinate system
-    pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+    pcd.transform(extrinsic)
 
     return pcd
 
@@ -58,7 +58,7 @@ def load_camera_intrinsics(camera_info):
         cam_info = data['cam_info']['Camera']
 
         # Parse extrinsic matrix
-        # extrinsic = np.array(cam_info[0])
+        extrinsic = np.array(cam_info[0])
         
         # Parse intrinsic matrix
         intrinsic = np.array(cam_info[1])
@@ -74,7 +74,7 @@ def load_camera_intrinsics(camera_info):
     intrinsic = o3d.camera.PinholeCameraIntrinsic(
         width, height, fx, fy, cx, cy)
     
-    return intrinsic
+    return intrinsic, extrinsic
 
 def show_pcd(file_path):
     # Read the PLY file
@@ -85,17 +85,17 @@ def show_pcd(file_path):
 
 if __name__ == "__main__":
     # paths
-    image = "PlushSim/interaction_sequence/img/rgb_0000_000000.jpg"
-    depth = "PlushSim/interaction_sequence/img/depth_0000_000000.png"
-    mask = "PlushSim/interaction_sequence/img/seg_0000_000000.jpg"
+    image = "PlushSim/interaction_sequence/img/rgb_0000_000599.jpg"
+    depth = "PlushSim/interaction_sequence/img/depth_0000_000599.png"
+    mask = "PlushSim/interaction_sequence/img/seg_0000_000599.jpg"
     camera_info = "PlushSim/interaction_sequence/info/scene_meta.json"
 
     view = True
     save = False
 
     # Create point cloud from masked images
-    intrinsic = load_camera_intrinsics(camera_info)
-    pcd = create_masked_point_cloud(image, depth, mask, intrinsic)
+    intrinsic, extrinsic = load_camera_intrinsics(camera_info)
+    pcd = create_masked_point_cloud(image, depth, mask, intrinsic, extrinsic)
 
     # Downsample the point cloud
     voxel_size = 0.05

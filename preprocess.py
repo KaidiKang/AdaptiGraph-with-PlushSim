@@ -89,8 +89,8 @@ def get_pointcloud(sequence, frame, image_path, cam_path):
     depth = os.path.join(image_path, "depth_" + sequence + "_" + frame + ".png")
     mask = os.path.join(image_path, "seg_" + sequence + "_" + frame + ".jpg")
 
-    intrinsic = load_camera_intrinsics(cam_path)
-    pcd = create_masked_point_cloud(image, depth, mask, intrinsic)
+    intrinsic, extrinsic = load_camera_intrinsics(cam_path)
+    pcd = create_masked_point_cloud(image, depth, mask, intrinsic, extrinsic)
     return pcd
 
 
