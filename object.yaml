@@ -1,7 +1,7 @@
 dataset_config:
-  data_name: "object"
+  data_name: "initialized"
   materials: ["object"]
-  data_dir: "../sim_data" # data directory
+  data_dir: "../" # data directory
   prep_data_dir: "../preprocess" # preprocessed data directory
   device: "cuda:0"
 
@@ -9,7 +9,7 @@ dataset_config:
   # preprocess
   n_his: 4
   n_future: 3
-  dist_thresh: 0.1 # 1.0cm
+  dist_thresh: 0.76 # 1.0cm
 
   ratio:
     train: [0, 0.98]

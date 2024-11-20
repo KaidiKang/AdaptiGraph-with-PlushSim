@@ -4,6 +4,7 @@ import time
 import os
 import re
 import json
+import cv2
 
 from pointcloud import create_masked_point_cloud, load_camera_intrinsics
 from utils import convert_ndarray, save_dic_to_h5, save_dic_to_pkl
@@ -37,6 +38,12 @@ def load_image(image_path):
             images[sequence]["frames"].append(frame)
 
     return images
+
+
+def get_rgb_values(image_path, sequence, frame):
+    image = os.path.join(image_path, "rgb_" + sequence + "_" + frame + ".jpg")
+    img = cv2.imread(image)
+    return img
 
 def load_eef(geom_path):
     data = np.load(geom_path)
@@ -87,7 +94,7 @@ def get_pointcloud(sequence, frame, image_path, cam_path):
     return pcd
 
 
-def preprocess (config):
+def preprocess (config, phase = "val"):
     time_start = time.time()
     print ("Preprocessing starts")
 
@@ -110,7 +117,7 @@ def preprocess (config):
 
         info = sequence_groups[sequence]["interaction"]
 
-        lift_pc, release_pc, lift_eef, release_eef = [], [], [], []
+        lift_pc, release_pc, lift_eef, release_eef, lift_rgb, release_rgb = [], [], [], [], [], []
         interaction_index = 0
 
         # Iterate through each frame
@@ -129,20 +136,32 @@ def preprocess (config):
                     pcd = pcd.farthest_point_down_sample(max_points)
                     lift_pc.append(np.asarray(pcd.points))
 
+                    if phase == "val":
+                        # Get the rgb values
+                        img = get_rgb_values(image_path, sequence, frame)
+                        lift_rgb.append(img)
+                        assert len(lift_pc) == len(lift_rgb), "Length of point cloud and rgb values do not match"
+
                 assert len(lift_pc) == len(lift_eef), "Length of point cloud and eef positions do not match"
 
-            elif int(frame) in range(info["release_frames"][interaction_index], info["static_frames"][interaction_index]+1):
-                # Get eef_positions
-                eef_pos = load_eef(os.path.join(geom_path, f"{sequence}_{frame}.npz"))
-                if eef_pos is not None:
-                    release_eef.append(eef_pos)
+            # elif int(frame) in range(info["release_frames"][interaction_index], info["static_frames"][interaction_index]+1):
+            #     # Get eef_positions
+            #     eef_pos = load_eef(os.path.join(geom_path, f"{sequence}_{frame}.npz"))
+            #     if eef_pos is not None:
+            #         release_eef.append(eef_pos)
                     
-                    # Get the point cloud
-                    pcd = get_pointcloud(sequence, frame, image_path, cam_path)
-                    pcd = pcd.farthest_point_down_sample(max_points)
-                    release_pc.append(np.asarray(pcd.points))
+            #         # Get the point cloud
+            #         pcd = get_pointcloud(sequence, frame, image_path, cam_path)
+            #         pcd = pcd.farthest_point_down_sample(max_points)
+            #         release_pc.append(np.asarray(pcd.points))
 
-                assert len(release_pc) == len(release_eef), "Length of point cloud and eef positions do not match"
+            #         if phase == "val":
+            #             # Get the rgb values
+            #             img = get_rgb_values(image_path, sequence, frame)
+            #             release_rgb.append(img)
+            #             assert len(release_pc) == len(release_rgb), "Length of point cloud and rgb values do not match"
+
+            #     assert len(release_pc) == len(release_eef), "Length of point cloud and eef positions do not match"
 
             if int(frame) == info["static_frames"][interaction_index]:
                 output = {
@@ -155,9 +174,7 @@ def preprocess (config):
                     },
                     "observations": {
                         "color": {
-                            "cam_0": [
-                                0.0
-                            ]
+                            "cam_0": lift_rgb
                         },
                         "depth": {
                             "cam_0": [
@@ -175,7 +192,7 @@ def preprocess (config):
 
                 save_dic_to_h5(output, f"initialized/{int(sequence):06d}/{interaction_index:02d}.h5")
                 interaction_index += 1
-                lift_pc, release_pc, lift_eef, release_eef = [], [], [], []
+                lift_pc, release_pc, lift_eef, release_eef, lift_rgb, release_rgb= [], [], [], [], [], []
 
         # Save the property parameters
         property_params = {
@@ -196,6 +213,12 @@ def preprocess (config):
         cam_info = data['cam_info']['Camera']
         extrinsic = np.array(cam_info[0])
         intrinsic = np.array(cam_info[1])
+        fx = intrinsic[0, 0]
+        fy = intrinsic[1, 1]
+        cx = intrinsic[0, 2]
+        cy = intrinsic[1, 2]
+        intrinsic = np.array([fx, fy, cx, cy]).reshape(1, 4)
+        extrinsic = extrinsic.reshape(1, 4, 4)
     os.makedirs("initialized/cameras/", exist_ok=True)
     np.save("initialized/cameras/extrinsic.npy", extrinsic)
     np.save("initialized/cameras/intrinsic.npy", intrinsic)
@@ -206,11 +229,5 @@ def preprocess (config):
 
 
 if __name__ == "__main__":
-    # dic = group_and_sort("PlushSim/interaction_sequence/img", "PlushSim/interaction_sequence/info")
-    # with open("test.json", "w") as f:
-    #     json.dump(dic, f, indent=4)
-
-    # data = load_eef("PlushSim/interaction_sequence/geom/0000_000769.npz")
-    # print (data)
-
-    preprocess({})
+    # If phase is train, rgb info is omitted
+    preprocess({}, phase = "val")
